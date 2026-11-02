@@ -1,0 +1,14 @@
+INVOICE
+Supplier: SAVANNAH OFFICE SUPPLIES LIMITED
+Invoice No: INV-2026-0142
+Date: 2026-10-01
+Due Date: 2026-10-31
+Bill To: DocuMind Demo Business
+
+Description             Qty   Amount
+A4 Paper (Box)           10   KES 8,500.00
+Printer Toner             1   KES 3,276.00
+
+Subtotal: KES 11,776.00
+VAT (16%): KES 1,884.16
+Total: KES 13,660.16

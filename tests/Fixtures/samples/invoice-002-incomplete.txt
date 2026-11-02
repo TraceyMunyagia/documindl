@@ -1,0 +1,5 @@
+INVOICE
+Supplier: Nairobi Fresh Produce
+Date: 2026-10-05
+Description: Weekly vegetables delivery
+Total: KES 4,800.00

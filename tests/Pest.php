@@ -1,5 +1,8 @@
 <?php
 
+use App\Parsing\CsvReceiptParser;
+use App\Parsing\ParserRegistry;
+use App\Parsing\PlainTextParser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +47,16 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function fixturePath(string $file): string
 {
-    // ..
+    return __DIR__.'/Fixtures/samples/'.$file;
+}
+
+function fixtureText(string $file): string
+{
+    return new ParserRegistry()
+        ->register(new PlainTextParser)
+        ->register(new CsvReceiptParser)
+        ->for(pathinfo($file, PATHINFO_EXTENSION))
+        ->parse(fixturePath($file));
 }

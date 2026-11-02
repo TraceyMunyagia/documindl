@@ -3,23 +3,20 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
-     * Seed the application's database.
+     * A verified demo account you can always log in with.
+     * The factory's default password is "password".
+     * Week 3 adds a demo business and team members here.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
         User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            'name' => 'Demo Owner',
+            'email' => 'owner@documind.test',
         ]);
     }
 }
