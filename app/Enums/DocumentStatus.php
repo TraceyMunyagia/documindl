@@ -23,6 +23,17 @@ enum DocumentStatus: string
         };
     }
 
+    public function color(): string
+    {
+        return match ($this) {
+            self::Pending => 'zinc',
+            self::Processing => 'sky',
+            self::ReviewRequired => 'amber',
+            self::Completed => 'emerald',
+            self::Failed => 'rose',
+        };
+    }
+
     /** @return list<self> */
     public function allowedNext(): array
     {

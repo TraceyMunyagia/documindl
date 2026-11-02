@@ -20,6 +20,7 @@ return [
         ['label' => 'Invoices', 'icon' => 'invoices', 'route' => 'invoices.index', 'active' => 'invoices.*', 'week' => 10],
         ['label' => 'Tasks', 'icon' => 'tasks', 'route' => 'tasks.index', 'active' => 'tasks.*', 'week' => 11],
         ['label' => 'Insights', 'icon' => 'insights', 'route' => 'insights.index', 'active' => 'insights.*', 'week' => 14],
+        ['label' => 'Team', 'icon' => 'team', 'route' => 'team.index', 'active' => 'team.*', 'week' => 3],
     ],
 
 ];

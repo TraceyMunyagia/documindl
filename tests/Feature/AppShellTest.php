@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Business;
 use App\Models\User;
 
 use function Pest\Laravel\actingAs;
@@ -18,9 +19,12 @@ test('unverified users must verify their email first', function () {
 });
 
 test('verified users see the DocuMind app shell', function () {
-    $user = User::factory()->create(['name' => 'Amina Otieno']);
+    $user = Business::factory()
+        ->for(User::factory()->state(['name' => 'Amina Otieno']), 'owner')
+        ->create()
+        ->owner;
 
-    actingAs($user)
+    actingAs($user->refresh())
         ->get(route('dashboard'))
         ->assertOk()
         ->assertSee('DocuMind')
@@ -30,7 +34,10 @@ test('verified users see the DocuMind app shell', function () {
 });
 
 test('sections without routes yet are shown as coming soon', function () {
-    actingAs(User::factory()->create())
+    $user = User::factory()->create();
+    Business::factory()->for($user, 'owner')->create();
+
+    actingAs($user->refresh())
         ->get(route('dashboard'))
         ->assertSee('Wk 4')
         ->assertSee('Wk 14');

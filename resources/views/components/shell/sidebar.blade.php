@@ -26,6 +26,10 @@
         </div>
 
         <x-shell.nav />
+
+        <div class="border-t border-zinc-200 p-3">
+            <x-shell.workspace-switcher />
+        </div>
     </aside>
 </div>
 
@@ -36,9 +40,7 @@
     </div>
 
     <x-shell.nav />
-
-    <div class="border-t border-zinc-200 px-6 py-4">
-        <p class="text-xs font-medium uppercase tracking-wide text-zinc-400">Workspace</p>
-        <p class="mt-1 text-sm text-zinc-500">Business workspaces arrive in Week 3</p>
+    <div class="border-t border-zinc-200 p-3">
+        <x-shell.workspace-switcher />
     </div>
 </aside>
