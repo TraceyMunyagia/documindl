@@ -4,6 +4,7 @@ use App\Parsing\CsvReceiptParser;
 use App\Parsing\ParserRegistry;
 use App\Parsing\PlainTextParser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 /*
@@ -59,4 +60,8 @@ function fixtureText(string $file): string
         ->register(new CsvReceiptParser)
         ->for(pathinfo($file, PATHINFO_EXTENSION))
         ->parse(fixturePath($file));
+}
+function fakePdf(string $name = 'invoice.pdf', string $body = 'Total: KES 100.00'): UploadedFile
+{
+    return UploadedFile::fake()->createWithContent($name, "%PDF-1.4\n{$body}\n%%EOF\n");
 }

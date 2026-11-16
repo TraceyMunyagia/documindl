@@ -39,7 +39,7 @@ test('sections without routes yet are shown as coming soon', function () {
 
     actingAs($user->refresh())
         ->get(route('dashboard'))
-        ->assertSee('Wk 4')
+        ->assertSee('Wk 10')
         ->assertSee('Wk 14');
 });
 

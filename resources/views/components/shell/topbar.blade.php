@@ -9,15 +9,14 @@
     <h1 class="text-base font-semibold text-zinc-900">{{ $title ?? config('app.name') }}</h1>
 
     <div class="ml-auto flex items-center gap-3">
-        <button
-            type="button"
-            disabled
-            title="Uploads arrive in Week 4"
-            class="hidden cursor-not-allowed items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white opacity-50 sm:inline-flex"
+               <a
+            href="{{ route('documents.upload') }}"
+            wire:navigate
+            class="hidden items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500 sm:inline-flex"
         >
             <flux:icon.arrow-up-tray class="size-4" />
             Upload
-        </button>
+        </a>
 
         <x-shell.user-menu />
     </div>

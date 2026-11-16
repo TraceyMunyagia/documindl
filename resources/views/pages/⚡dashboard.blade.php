@@ -37,7 +37,7 @@ new #[Layout('layouts.documind')] #[Title('Dashboard')] class extends Component
             [
                 'label' => 'Documents processed',
                 'value' => (string) Document::query()->where('status', DocumentStatus::Completed->value)->count(),
-                'hint' => 'Seeded data until uploads arrive in Week 4',
+                'hint' => 'Marked complete after processing (Week 6)',
             ],
             [
                 'label' => 'Awaiting approval',
@@ -70,7 +70,7 @@ new #[Layout('layouts.documind')] #[Title('Dashboard')] class extends Component
         return [
             ['label' => 'Create your account and verify your email', 'done' => true, 'week' => null],
             ['label' => 'Set up your business workspace', 'done' => true, 'week' => null],
-            ['label' => 'Upload your first invoice or receipt', 'done' => false, 'week' => 4],
+            ['label' => 'Upload your first invoice or receipt', 'done' => Document::query()->whereNotNull('path')->exists(), 'week' => 4],
             ['label' => 'Review AI-extracted fields and save', 'done' => false, 'week' => 8],
         ];
     }
@@ -103,16 +103,16 @@ new #[Layout('layouts.documind')] #[Title('Dashboard')] class extends Component
                 </x-slot:icon>
 
                 <x-slot:action>
-                    <button type="button" disabled class="cursor-not-allowed rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white opacity-50">
-                        Upload a document (Week 4)
-                    </button>
+                    <a href="{{ route('documents.upload') }}" wire:navigate class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">
+                        Upload a document
+                    </a>
                 </x-slot:action>
             </x-ui.empty-state>
         @else
             <div class="rounded-xl border border-zinc-200 bg-white shadow-sm lg:col-span-2">
                 <div class="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
                     <h3 class="text-sm font-semibold text-zinc-900">Recent documents</h3>
-                    <span class="text-xs text-zinc-400">Full list arrives in Week 5</span>
+                    <a href="{{ route('documents.index') }}" wire:navigate class="text-xs font-medium text-indigo-600 hover:text-indigo-500">View all</a>
                 </div>
                 <ul class="divide-y divide-zinc-100">
                     @foreach ($this->recentDocuments as $document)

@@ -55,6 +55,7 @@ class Document extends Model
         'path',
         'mime_type',
         'size_bytes',
+        'checksum',
         'type',
         'status',
         'extracted_text',
@@ -66,7 +67,7 @@ class Document extends Model
     protected $attributes = [
         'status' => 'pending',
         'type' => 'other',
-        'disk' => 'local',
+        'disk' => 'documents',
     ];
 
     /**
@@ -110,6 +111,21 @@ class Document extends Model
     protected function extension(): Attribute
     {
         return Attribute::get(fn (): string => strtolower(pathinfo($this->original_name, PATHINFO_EXTENSION)));
+    }
+
+    public function hasFile(): bool
+    {
+        return $this->path !== null;
+    }
+
+    public function isPdf(): bool
+    {
+        return $this->mime_type === 'application/pdf';
+    }
+
+    public function isImage(): bool
+    {
+        return in_array($this->mime_type, ['image/jpeg', 'image/png'], true);
     }
 
     /** Same rule as Week 1, now persisted. */

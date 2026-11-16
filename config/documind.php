@@ -9,7 +9,9 @@ return [
 
     // Used from Week 4.
     'uploads' => [
+        'disk' => env('DOCUMIND_DOCUMENTS_DISK', 'documents'),
         'max_kb' => (int) env('DOCUMIND_MAX_UPLOAD_KB', 10240),
+        'max_files' => 10,
         'allowed_extensions' => ['pdf', 'jpg', 'jpeg', 'png'],
     ],
 

@@ -20,7 +20,7 @@ class DocumentFactory extends Factory
         return [
             'business_id' => Business::factory(),
             'original_name' => $type->value.'-'.fake()->numerify('####').'.pdf',
-            'disk' => 'local',
+            'disk' => 'documents',
             'path' => null,
             'mime_type' => 'application/pdf',
             'size_bytes' => fake()->numberBetween(40_000, 2_000_000),
