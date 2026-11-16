@@ -12,6 +12,7 @@ use App\Models\Document;
 use App\Models\Invoice;
 use App\Models\Task;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Sequence;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -96,6 +97,21 @@ class DatabaseSeeder extends Seeder
         ]);
         Document::factory()->reviewRequired()->for($business)->create(['uploaded_by' => $uploader->id]);
         Document::factory()->pending()->for($business)->create(['uploaded_by' => $uploader->id]);
+
+        $uploaderIds = $business->members()->pluck('users.id')->all();
+
+        Document::factory()
+            ->count(25)
+            ->for($business)
+            ->sequence(fn (Sequence $sequence): array => [
+                'original_name' => fake()->randomElement(['fuel', 'airtime', 'stationery', 'lunch-meeting', 'parking', 'courier', 'printing'])
+                    .'-receipt-'.fake()->numerify('####').'.pdf',
+                'type' => DocumentType::Receipt,
+                'category_id' => $categories->random()->id,
+                'uploaded_by' => fake()->randomElement($uploaderIds),
+                'created_at' => now()->subDays($sequence->index * 4)->subHours(fake()->numberBetween(0, 20)),
+            ])
+            ->create();
 
         $overdue = $business->invoices()->overdue()->first();
 

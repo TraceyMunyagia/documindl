@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\BusinessRole;
 use App\Models\Document;
 use App\Models\User;
 
@@ -38,5 +39,22 @@ class DocumentPolicy
     public function delete(User $user, Document $document): bool
     {
         return $user->roleIn($document->business_id)?->canManage() ?? false;
+    }
+
+    public function viewTrash(User $user): bool
+    {
+        return $user->current_business_id !== null
+            && ($user->roleIn($user->current_business_id)?->canManage() ?? false);
+    }
+
+    public function restore(User $user, Document $document): bool
+    {
+        return $user->roleIn($document->business_id)?->canManage() ?? false;
+    }
+
+    /** Permanent deletion is owner-only and cannot be undone. */
+    public function forceDelete(User $user, Document $document): bool
+    {
+        return $user->hasRoleIn($document->business_id, BusinessRole::Owner);
     }
 }

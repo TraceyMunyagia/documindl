@@ -19,6 +19,9 @@
             @case('team')
         <flux:icon.users class="size-5 shrink-0" />
         @break
+    @case('categories')
+        <flux:icon.tag class="size-5 shrink-0" />
+        @break
     @default
         <flux:icon.square-2-stack class="size-5 shrink-0" />
 @endswitch

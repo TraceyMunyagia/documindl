@@ -4,7 +4,6 @@ use App\Actions\Documents\UploadDocument;
 use App\Enums\BusinessRole;
 use App\Models\AuditLog;
 use App\Models\Business;
-use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -17,15 +16,6 @@ beforeEach(function () {
 
     $this->document = app(UploadDocument::class)->handle(fakePdf(), $this->owner, $this->business);
 });
-
-function memberOf(Business $business, BusinessRole $role): User
-{
-    $user = User::factory()->create();
-    $business->members()->attach($user->id, ['role' => $role->value]);
-    $user->switchBusiness($business);
-
-    return $user;
-}
 
 test('members can preview the file inline with safe headers', function () {
     $this->get(route('documents.file', $this->document))

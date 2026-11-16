@@ -19,6 +19,7 @@ return [
     'navigation' => [
         ['label' => 'Dashboard', 'icon' => 'home', 'route' => 'dashboard', 'active' => 'dashboard', 'week' => null],
         ['label' => 'Documents', 'icon' => 'documents', 'route' => 'documents.index', 'active' => 'documents.*', 'week' => 4],
+        ['label' => 'Categories', 'icon' => 'categories', 'route' => 'categories.index', 'active' => 'categories.*', 'week' => 5],
         ['label' => 'Invoices', 'icon' => 'invoices', 'route' => 'invoices.index', 'active' => 'invoices.*', 'week' => 10],
         ['label' => 'Tasks', 'icon' => 'tasks', 'route' => 'tasks.index', 'active' => 'tasks.*', 'week' => 11],
         ['label' => 'Insights', 'icon' => 'insights', 'route' => 'insights.index', 'active' => 'insights.*', 'week' => 14],

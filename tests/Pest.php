@@ -1,5 +1,8 @@
 <?php
 
+use App\Enums\BusinessRole;
+use App\Models\Business;
+use App\Models\User;
 use App\Parsing\CsvReceiptParser;
 use App\Parsing\ParserRegistry;
 use App\Parsing\PlainTextParser;
@@ -64,4 +67,12 @@ function fixtureText(string $file): string
 function fakePdf(string $name = 'invoice.pdf', string $body = 'Total: KES 100.00'): UploadedFile
 {
     return UploadedFile::fake()->createWithContent($name, "%PDF-1.4\n{$body}\n%%EOF\n");
+}
+function memberOf(Business $business, BusinessRole $role): User
+{
+    $user = User::factory()->create();
+    $business->members()->attach($user->id, ['role' => $role->value]);
+    $user->switchBusiness($business);
+
+    return $user;
 }

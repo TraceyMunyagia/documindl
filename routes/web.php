@@ -19,6 +19,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
     Route::livewire('documents', 'pages::documents.index')->name('documents.index');
     Route::livewire('documents/upload', 'pages::documents.upload')->name('documents.upload');
+    Route::livewire('documents/trash', 'pages::documents.trash')->name('documents.trash');
     Route::livewire('documents/{document}', 'pages::documents.show')
         ->whereNumber('document')
         ->name('documents.show');
@@ -28,6 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('documents/{document}/download', [DocumentFileController::class, 'download'])
         ->whereNumber('document')
         ->name('documents.download');
+    Route::livewire('categories', 'pages::categories.index')->name('categories.index');
 });
 
 require __DIR__.'/settings.php';

@@ -7,6 +7,7 @@ use App\Enums\DocumentType;
 use App\Exceptions\InvalidStatusTransitionException;
 use App\Models\Concerns\BelongsToBusiness;
 use Database\Factories\DocumentFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -111,6 +112,28 @@ class Document extends Model
     protected function extension(): Attribute
     {
         return Attribute::get(fn (): string => strtolower(pathinfo($this->original_name, PATHINFO_EXTENSION)));
+    }
+
+    /** Case-insensitive "contains" search across name, summary and linked invoice. */
+    public function scopeSearch(Builder $query, ?string $term): void
+    {
+        $term = trim((string) $term);
+
+        if ($term === '') {
+            return;
+        }
+
+        // Escape LIKE wildcards so "50%" searches for the literal text "50%".
+        $like = '%'.addcslashes($term, '%_\\').'%';
+
+        $query->where(function (Builder $query) use ($like): void {
+            $query->where('documents.original_name', 'ilike', $like)
+                ->orWhere('documents.summary', 'ilike', $like)
+                ->orWhereHas('invoice', function (Builder $invoice) use ($like): void {
+                    $invoice->where('supplier_name', 'ilike', $like)
+                        ->orWhere('invoice_number', 'ilike', $like);
+                });
+        });
     }
 
     public function hasFile(): bool

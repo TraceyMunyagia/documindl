@@ -1,7 +1,10 @@
 <?php
 
+use App\Livewire\Forms\DocumentDetailsForm;
 use App\Models\AuditLog;
+use App\Models\Category;
 use App\Models\Document;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -13,13 +16,48 @@ new #[Layout('layouts.documind')] #[Title('Document')] class extends Component
     #[Locked]
     public Document $document;
 
+    public DocumentDetailsForm $form;
+
+    public bool $editing = false;
+
     public function mount(Document $document): void
     {
         $this->authorize('view', $document);
 
         $this->document = $document->load(['category', 'uploader']);
+        $this->form->setFrom($this->document);
     }
-        public function delete(): void
+
+    #[Computed]
+    public function categories()
+    {
+        return Category::query()->orderBy('name')->get(['id', 'name']);
+    }
+
+    public function startEditing(): void
+    {
+        $this->authorize('update', $this->document);
+
+        $this->form->setFrom($this->document);
+        $this->resetValidation();
+        $this->editing = true;
+    }
+
+    public function cancelEditing(): void
+    {
+        $this->resetValidation();
+        $this->editing = false;
+    }
+
+    public function saveDetails(): void
+    {
+        $this->authorize('update', $this->document);
+
+        $this->document = $this->form->save($this->document)->load(['category', 'uploader']);
+        $this->editing = false;
+    }
+
+    public function delete(): void
     {
         $this->authorize('delete', $this->document);
 
@@ -49,6 +87,19 @@ new #[Layout('layouts.documind')] #[Title('Document')] class extends Component
         </div>
 
         <div class="flex items-center gap-2">
+            @can('update', $document)
+                @unless ($editing)
+                    <button
+                        type="button"
+                        wire:click="startEditing"
+                        class="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                    >
+                        <flux:icon.pencil-square class="size-4" />
+                        Edit details
+                    </button>
+                @endunless
+            @endcan
+
             @can('delete', $document)
                 <button
                     type="button"
@@ -106,37 +157,58 @@ new #[Layout('layouts.documind')] #[Title('Document')] class extends Component
         </div>
 
         <div class="space-y-6">
+                    <div class="space-y-6">
+            @if ($editing)
+                <form wire:submit="saveDetails" class="space-y-4 rounded-xl border border-indigo-200 bg-white p-5 shadow-sm">
+                    <h3 class="text-sm font-semibold text-zinc-900">Edit details</h3>
+
+                    <div>
+                        <label for="doc-name" class="block text-sm font-medium text-zinc-700">Name</label>
+                        <div class="mt-1 flex rounded-lg border border-zinc-300 shadow-sm focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20">
+                            <input id="doc-name" type="text" wire:model="form.name" class="min-w-0 flex-1 rounded-l-lg border-0 px-3 py-2 text-sm focus:outline-none">
+                            <span class="flex items-center rounded-r-lg bg-zinc-50 px-3 text-sm text-zinc-500">
+                                .{{ pathinfo($document->original_name, PATHINFO_EXTENSION) }}
+                            </span>
+                        </div>
+                        @error('form.name') <p class="mt-1 text-sm text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label for="doc-category" class="block text-sm font-medium text-zinc-700">Category</label>
+                        <select id="doc-category" wire:model="form.categoryId" class="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm">
+                            <option value="">Uncategorised</option>
+                            @foreach ($this->categories as $option)
+                                <option value="{{ $option->id }}">{{ $option->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('form.categoryId') <p class="mt-1 text-sm text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label for="doc-type" class="block text-sm font-medium text-zinc-700">Type</label>
+                        <select id="doc-type" wire:model="form.type" class="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm">
+                            @foreach (\App\Enums\DocumentType::cases() as $option)
+                                <option value="{{ $option->value }}">{{ $option->label() }}</option>
+                            @endforeach
+                        </select>
+                        @error('form.type') <p class="mt-1 text-sm text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label for="doc-summary" class="block text-sm font-medium text-zinc-700">Notes</label>
+                        <textarea id="doc-summary" wire:model="form.summary" rows="3" class="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm" placeholder="Anything worth remembering about this document"></textarea>
+                        @error('form.summary') <p class="mt-1 text-sm text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" wire:click="cancelEditing" class="rounded-lg px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100">Cancel</button>
+                        <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">Save</button>
+                    </div>
+                </form>
+            @endif
+
             <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
                 <h3 class="text-sm font-semibold text-zinc-900">Details</h3>
-                <dl class="mt-4 space-y-3 text-sm">
-                    <div class="flex justify-between gap-4">
-                        <dt class="text-zinc-500">Uploaded by</dt>
-                        <dd class="text-right text-zinc-900">{{ $document->uploader?->name ?? '—' }}</dd>
-                    </div>
-                    <div class="flex justify-between gap-4">
-                        <dt class="text-zinc-500">Uploaded</dt>
-                        <dd class="text-right text-zinc-900">
-                            {{ $document->created_at->timezone(config('documind.display_timezone'))->format('j M Y, H:i') }}
-                        </dd>
-                    </div>
-                    <div class="flex justify-between gap-4">
-                        <dt class="text-zinc-500">Size</dt>
-                        <dd class="text-right text-zinc-900">
-                            {{ $document->size_bytes > 0 ? \Illuminate\Support\Number::fileSize($document->size_bytes, precision: 1) : '—' }}
-                        </dd>
-                    </div>
-                    <div class="flex justify-between gap-4">
-                        <dt class="text-zinc-500">File type</dt>
-                        <dd class="text-right text-zinc-900">{{ $document->mime_type ?? '—' }}</dd>
-                    </div>
-                    <div class="flex justify-between gap-4">
-                        <dt class="text-zinc-500">Checksum</dt>
-                        <dd class="text-right font-mono text-xs text-zinc-900" title="{{ $document->checksum }}">
-                            {{ $document->checksum ? \Illuminate\Support\Str::limit($document->checksum, 12, '…') : '—' }}
-                        </dd>
-                    </div>
-                </dl>
-            </div>
 
             <div class="rounded-xl border border-dashed border-zinc-200 bg-white p-5 text-sm text-zinc-500">
                 <h3 class="font-semibold text-zinc-900">Extracted information</h3>
