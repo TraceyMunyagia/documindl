@@ -210,8 +210,9 @@ new #[Layout('layouts.documind')] #[Title('Documents')] class extends Component
 };
 ?>
 
-<div class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-4">
+<div
+    class="space-y-6"
+    @if ($this->documents->contains(fn ($document) => $document->status->isActive())) wire:poll.5s.visible @endif>    <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
             <h2 class="text-xl font-semibold tracking-tight text-zinc-900">Documents</h2>
             <p class="mt-1 text-sm text-zinc-500">

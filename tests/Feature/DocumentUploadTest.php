@@ -1,15 +1,18 @@
 <?php
 
 use App\Enums\DocumentStatus;
+use App\Jobs\ProcessDocument;
 use App\Models\Business;
 use App\Models\Category;
 use App\Models\Document;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 beforeEach(function () {
     Storage::fake('documents');
+    Queue::fake(); // these tests cover uploading; processing has its own tests
 
     $this->business = Business::factory()->create();
     $this->owner = $this->business->owner;
@@ -36,6 +39,8 @@ test('members can upload PDFs and images', function () {
         ->and($pdf->path)->not->toContain('invoice.pdf');
 
     Storage::disk('documents')->assertExists($pdf->path);
+
+    Queue::assertPushed(ProcessDocument::class, 2);
 });
 
 test('disallowed file types are rejected', function (string $name) {

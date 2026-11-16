@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Actions\Documents\UploadDocument;
 use App\Enums\BusinessRole;
 use App\Enums\DocumentType;
 use App\Models\AuditLog;
@@ -14,6 +15,7 @@ use App\Models\Task;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Sequence;
 use Illuminate\Database\Seeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
@@ -54,6 +56,18 @@ class DatabaseSeeder extends Seeder
             'token' => Str::random(64),
             'expires_at' => now()->addDays(7),
         ]);
+
+        // Two real files so processing (and, from Week 7, extraction) has something to work on.
+        // The upload queues ProcessDocument; the running queue worker picks them up.
+        $upload = app(UploadDocument::class);
+
+        foreach (['invoice-001.pdf', 'receipt-scan.jpg'] as $sample) {
+            $path = base_path("tests/Fixtures/samples/{$sample}");
+
+            if (is_file($path)) {
+                $upload->handle(new UploadedFile($path, $sample, null, null, true), $manager, $bakery);
+            }
+        }
     }
 
     private function seedRecords(Business $business, User $uploader, User $assignee): void

@@ -14,6 +14,16 @@ return [
         'max_files' => 10,
         'allowed_extensions' => ['pdf', 'jpg', 'jpeg', 'png'],
     ],
+    'extraction' => [
+        'pdftotext' => env('DOCUMIND_PDFTOTEXT_PATH', 'pdftotext'),
+        'pdftoppm' => env('DOCUMIND_PDFTOPPM_PATH', 'pdftoppm'),
+        'tesseract' => env('DOCUMIND_TESSERACT_PATH', 'tesseract'),
+        'ocr_languages' => env('DOCUMIND_OCR_LANGUAGES', 'eng'),
+        'ocr_max_pages' => 5,     // OCR is slow; scanned PDFs longer than this are partly read
+        'ocr_dpi' => 300,         // resolution pages are rendered at before OCR
+        'min_pdf_text_chars' => 40, // fewer real characters than this → treat the PDF as a scan
+        'tool_timeout' => 90,     // seconds for any single tool run
+    ],
 
     // Sidebar items. An item becomes a link as soon as its route exists.
     'navigation' => [

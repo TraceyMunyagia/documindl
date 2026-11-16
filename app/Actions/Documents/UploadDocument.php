@@ -7,6 +7,7 @@ namespace App\Actions\Documents;
 use App\Enums\DocumentStatus;
 use App\Enums\DocumentType;
 use App\Exceptions\DuplicateDocumentException;
+use App\Jobs\ProcessDocument;
 use App\Models\AuditLog;
 use App\Models\Business;
 use App\Models\Document;
@@ -22,7 +23,7 @@ final class UploadDocument
 {
     /**
      * Expects a file that has already passed DocumentUploadRules.
-     * Week 6 adds: dispatch a queued job to extract text and classify it.
+     * Queues ProcessDocument to extract text and classify it in the background.
      */
     public function handle(UploadedFile $file, User $uploader, Business $business, ?int $categoryId = null): Document
     {
@@ -49,7 +50,7 @@ final class UploadDocument
         }
 
         try {
-            return DB::transaction(function () use ($file, $uploader, $business, $categoryId, $disk, $path, $checksum): Document {
+            $document = DB::transaction(function () use ($file, $uploader, $business, $categoryId, $disk, $path, $checksum): Document {
                 $document = Document::create([
                     'business_id' => $business->getKey(),
                     'category_id' => $categoryId,
@@ -77,6 +78,11 @@ final class UploadDocument
 
             throw $e;
         }
+
+        // Dispatched after the transaction has committed, so the worker can always find the row.
+        ProcessDocument::dispatch($document);
+
+        return $document;
     }
 
     /** Keeps the name readable for display, but strips paths and control characters. */

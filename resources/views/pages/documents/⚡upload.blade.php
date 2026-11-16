@@ -79,7 +79,7 @@ new #[Layout('layouts.documind')] #[Title('Upload documents')] class extends Com
         ], [
             'files.required' => 'Choose at least one file to upload.',
         ]);
-        
+
         $this->results = [];
 
         $rateKey = 'document-uploads:' . auth()->id();
@@ -129,7 +129,8 @@ new #[Layout('layouts.documind')] #[Title('Upload documents')] class extends Com
         $uploaded = count(array_filter($this->results, fn (array $result): bool => $result['ok']));
 
         if ($uploaded === count($this->results)) {
-            session()->flash('status', $uploaded === 1 ? '1 document uploaded.' : "{$uploaded} documents uploaded.");
+            session()->flash('status', ($uploaded === 1 ? '1 document uploaded' : "{$uploaded} documents uploaded")
+                . ' and queued for processing.');
             $this->redirectRoute('documents.index', navigate: true);
         }
     }
@@ -271,7 +272,9 @@ new #[Layout('layouts.documind')] #[Title('Upload documents')] class extends Com
 
             <button
                 type="submit"
-                @disabled($files === [])
+                {{-- No @disabled($files === []) here: wire:loading restores the button to its
+                     first-render state, which would leave it stuck disabled after picking a file.
+                     save() already rejects an empty submit with a clear message. --}}
                 wire:loading.attr="disabled"
                 wire:target="save,incoming"
                 class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"

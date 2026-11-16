@@ -1,7 +1,9 @@
 <?php
 
 use App\Enums\BusinessRole;
+use App\Jobs\ProcessDocument;
 use App\Models\Business;
+use App\Models\Document;
 use App\Models\User;
 use App\Parsing\CsvReceiptParser;
 use App\Parsing\ParserRegistry;
@@ -75,4 +77,14 @@ function memberOf(Business $business, BusinessRole $role): User
     $user->switchBusiness($business);
 
     return $user;
+}
+
+/**
+ * Runs ProcessDocument right now, exactly as a queue worker would (dependencies injected).
+ * TestCase fakes the queue for ProcessDocument, and that fake also swallows dispatchSync(),
+ * so tests call this instead.
+ */
+function processNow(Document $document): void
+{
+    app()->call([new ProcessDocument($document), 'handle']);
 }

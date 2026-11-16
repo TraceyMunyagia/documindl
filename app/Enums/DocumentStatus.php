@@ -34,6 +34,12 @@ enum DocumentStatus: string
         };
     }
 
+    /** Still waiting for, or in the middle of, background processing. */
+    public function isActive(): bool
+    {
+        return in_array($this, [self::Pending, self::Processing], true);
+    }
+
     /** @return list<self> */
     public function allowedNext(): array
     {

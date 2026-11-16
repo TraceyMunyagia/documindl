@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Documents\ReprocessDocument;
 use App\Livewire\Forms\DocumentDetailsForm;
 use App\Models\AuditLog;
 use App\Models\Category;
@@ -47,6 +48,22 @@ new #[Layout('layouts.documind')] #[Title('Document')] class extends Component
     {
         $this->resetValidation();
         $this->editing = false;
+
+    }
+        /** Called every few seconds while the document is pending or processing. */
+    public function refreshStatus(): void
+    {
+        $this->document->refresh()->load(['category', 'uploader']);
+    }
+
+    public function reprocess(ReprocessDocument $reprocessDocument): void
+    {
+        $this->authorize('update', $this->document);
+        abort_unless($this->document->status === \App\Enums\DocumentStatus::Failed, 422, 'Only failed documents can be processed again.');
+
+        $reprocessDocument->handle($this->document);
+
+        $this->document->refresh()->load(['category', 'uploader']);
     }
 
     public function saveDetails(): void
@@ -156,7 +173,7 @@ new #[Layout('layouts.documind')] #[Title('Document')] class extends Component
             @endif
         </div>
 
-        <div class="space-y-6">
+         <div class="space-y-6" @if ($document->status->isActive()) wire:poll.3s="refreshStatus" @endif>
                     <div class="space-y-6">
             @if ($editing)
                 <form wire:submit="saveDetails" class="space-y-4 rounded-xl border border-indigo-200 bg-white p-5 shadow-sm">
@@ -210,10 +227,70 @@ new #[Layout('layouts.documind')] #[Title('Document')] class extends Component
             <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
                 <h3 class="text-sm font-semibold text-zinc-900">Details</h3>
 
+                        @if ($document->status->isActive())
+                <div class="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800">
+                    <svg class="mt-0.5 size-4 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25"></circle>
+                        <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+                    </svg>
+                    <div>
+                        <p class="font-semibold">{{ $document->status === \App\Enums\DocumentStatus::Pending ? 'Waiting to be processed' : 'Reading the document…' }}</p>
+                        <p class="mt-0.5">This page updates by itself. Scans and photos take longer because they're read with OCR.</p>
+                    </div>
+                </div>
+            @endif
+
+            @if ($document->status === \App\Enums\DocumentStatus::Failed)
+                <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                                     <p class="font-semibold">Processing failed</p>
+                    <p class="mt-0.5">{{ $document->failure_reason ?? 'Something went wrong.' }}</p>
+
+                    @can('update', $document)
+                        <button
+                            type="button"
+                            wire:click="reprocess"
+                            wire:loading.attr="disabled"
+                            class="mt-3 inline-flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-1.5 font-semibold text-white hover:bg-rose-500 disabled:opacity-60"
+                        >
+                            <flux:icon.arrow-path class="size-4" />
+                            Try again
+                        </button>
+                    @endcan
+                </div>
+            @endif
+
+            @if ($document->processing_note)
+                <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                    <p class="font-semibold">Needs attention</p>
+                    <p class="mt-0.5">{{ $document->processing_note }}</p>
+                </div>
+            @endif
+
             <div class="rounded-xl border border-dashed border-zinc-200 bg-white p-5 text-sm text-zinc-500">
                 <h3 class="font-semibold text-zinc-900">Extracted information</h3>
                 <p class="mt-1">Supplier, amounts and due dates will appear here once AI extraction arrives in Week 7.</p>
             </div>
+
+            @if ($document->extracted_text)
+                <details class="group rounded-xl border border-zinc-200 bg-white shadow-sm">
+                    <summary class="flex cursor-pointer items-center justify-between gap-2 px-5 py-4 text-sm font-semibold text-zinc-900">
+                        Extracted text
+                        <span class="flex items-center gap-2">
+                            <x-ui.badge :color="$document->extraction_method === \App\Enums\ExtractionMethod::Ocr ? 'amber' : 'emerald'">
+                                {{ $document->extraction_method?->label() }}
+                            </x-ui.badge>
+                            <flux:icon.chevron-down class="size-4 text-zinc-400 transition group-open:rotate-180" />
+                        </span>
+                    </summary>
+                    <div class="border-t border-zinc-100 px-5 py-4">
+                        <pre class="max-h-96 overflow-auto whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-zinc-700">{{ $document->extracted_text }}</pre>
+                        <p class="mt-3 text-xs text-zinc-400">
+                            {{ number_format(mb_strlen($document->extracted_text)) }} characters ·
+                            processed {{ $document->processed_at?->timezone(config('documind.display_timezone'))->format('j M Y, H:i') }}
+                        </p>
+                    </div>
+                </details>
+            @endif
         </div>
     </div>
 </div>

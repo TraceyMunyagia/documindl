@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\DocumentStatus;
 use App\Enums\DocumentType;
+use App\Enums\ExtractionMethod;
 use App\Exceptions\InvalidStatusTransitionException;
 use App\Models\Concerns\BelongsToBusiness;
 use Database\Factories\DocumentFactory;
@@ -62,6 +63,8 @@ class Document extends Model
         'extracted_text',
         'summary',
         'failure_reason',
+        'processing_note',
+        'extraction_method',
         'processed_at',
     ];
 
@@ -81,6 +84,7 @@ class Document extends Model
             'status' => DocumentStatus::class,
             'size_bytes' => 'integer',
             'processed_at' => 'datetime',
+            'extraction_method' => ExtractionMethod::class,
         ];
     }
 
