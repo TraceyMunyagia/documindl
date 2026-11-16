@@ -25,7 +25,7 @@ new #[Layout('layouts.documind')] #[Title('Document')] class extends Component
     {
         $this->authorize('view', $document);
 
-        $this->document = $document->load(['category', 'uploader']);
+        $this->document = $document->load(['category', 'uploader', 'latestExtraction']);
         $this->form->setFrom($this->document);
     }
 
@@ -266,10 +266,93 @@ new #[Layout('layouts.documind')] #[Title('Document')] class extends Component
                 </div>
             @endif
 
-            <div class="rounded-xl border border-dashed border-zinc-200 bg-white p-5 text-sm text-zinc-500">
-                <h3 class="font-semibold text-zinc-900">Extracted information</h3>
-                <p class="mt-1">Supplier, amounts and due dates will appear here once AI extraction arrives in Week 7.</p>
-            </div>
+                        @php $extraction = $document->latestExtraction; @endphp
+
+            @if ($extraction)
+                <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
+                    <div class="flex items-center justify-between gap-2">
+                        <h3 class="text-sm font-semibold text-zinc-900">Extracted information</h3>
+                        @if ($extraction->verified_at)
+                            <x-ui.badge color="emerald">Verified</x-ui.badge>
+                        @else
+                            <x-ui.badge color="amber">Not yet verified</x-ui.badge>
+                        @endif
+                    </div>
+
+                    @if ($extraction->summary)
+                        <p class="mt-3 text-sm text-zinc-600">{{ $extraction->summary }}</p>
+                    @endif
+
+                    @php
+                        $rows = [
+                            'supplier_name' => ['Supplier', $extraction->field('supplier_name')],
+                            'document_number' => ['Number', $extraction->field('document_number')],
+                            'issue_date' => ['Issued', $extraction->field('issue_date')
+                                ? \Illuminate\Support\Carbon::parse($extraction->field('issue_date'))->format('j M Y') : null],
+                            'due_date' => ['Due', $extraction->field('due_date')
+                                ? \Illuminate\Support\Carbon::parse($extraction->field('due_date'))->format('j M Y') : null],
+                            'total_amount' => ['Total', $extraction->money('total')?->format()],
+                            'tax_amount' => ['Tax', $extraction->money('tax')?->format()],
+                        ];
+                        $dot = ['high' => 'bg-emerald-500', 'medium' => 'bg-amber-500', 'low' => 'bg-rose-500'];
+                    @endphp
+
+                    <dl class="mt-4 space-y-3 text-sm">
+                        @foreach ($rows as $field => [$label, $value])
+                            <div class="flex items-start justify-between gap-4">
+                                <dt class="text-zinc-500">{{ $label }}</dt>
+                                <dd class="flex items-center gap-2 text-right">
+                                    @if ($value === null)
+                                        <span class="text-zinc-400">Not found</span>
+                                    @else
+                                        <span class="font-medium text-zinc-900">{{ $value }}</span>
+                                        @if ($extraction->usedAi())
+                                            <span
+                                                class="size-2 shrink-0 rounded-full {{ $dot[$extraction->confidenceLevel($field)] }}"
+                                                title="{{ ucfirst($extraction->confidenceLevel($field)) }} confidence ({{ number_format(($extraction->confidence[$field] ?? 0) * 100) }}%)"
+                                            ></span>
+                                        @endif
+                                    @endif
+                                </dd>
+                            </div>
+                        @endforeach
+                    </dl>
+
+                    @if ($extraction->missing_fields !== [])
+                        <p class="mt-4 text-xs text-zinc-500">
+                            Missing: {{ collect($extraction->missing_fields)->map(fn ($f) => str_replace('_', ' ', $f))->implode(', ') }}
+                        </p>
+                    @endif
+
+                    @if ($extraction->warnings !== [])
+                        <ul class="mt-4 space-y-1 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+                            @foreach ($extraction->warnings as $warning)
+                                <li class="flex gap-2">
+                                    <flux:icon.exclamation-triangle class="size-4 shrink-0" />
+                                    <span>{{ $warning }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+
+                    <p class="mt-4 border-t border-zinc-100 pt-3 text-xs text-zinc-400">
+                        @if ($extraction->usedAi())
+                            Read by {{ $extraction->model }} ·
+                            {{ number_format($extraction->prompt_tokens + $extraction->output_tokens) }} tokens ·
+                            ~${{ number_format((float) $extraction->estimated_cost_usd, 4) }} ·
+                            {{ number_format($extraction->latency_ms / 1000, 1) }}s
+                        @else
+                            Read with simple rules (no AI)
+                        @endif
+                        · {{ $extraction->created_at->timezone(config('documind.display_timezone'))->format('j M, H:i') }}
+                    </p>
+                </div>
+            @elseif (! $document->status->isActive() && $document->type->isFinancial())
+                <div class="rounded-xl border border-dashed border-zinc-200 bg-white p-5 text-sm text-zinc-500">
+                    <h3 class="font-semibold text-zinc-900">Extracted information</h3>
+                    <p class="mt-1">No fields have been extracted for this document.</p>
+                </div>
+            @endif
 
             @if ($document->extracted_text)
                 <details class="group rounded-xl border border-zinc-200 bg-white shadow-sm">

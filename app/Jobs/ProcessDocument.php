@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Ai\Extraction\FieldExtractionService;
 use App\Contracts\DocumentClassifier;
 use App\Enums\DocumentStatus;
 use App\Enums\DocumentType;
@@ -19,85 +20,97 @@ class ProcessDocument implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
-    /** Total attempts for unexpected errors (timeouts, crashes). */
     public int $tries = 3;
 
-    /** Seconds before this job is killed. Must stay below DB_QUEUE_RETRY_AFTER. */
     public int $timeout = 240;
 
-    /** If the document is deleted before the job runs, quietly drop the job. */
     public bool $deleteWhenMissingModels = true;
 
     public function __construct(public Document $document) {}
 
-    /** Wait 15s before the 2nd attempt, 60s before the 3rd. */
+    /** Waits before attempts 2 and 3. Long enough for an AI rate limit to clear. */
     public function backoff(): array
     {
-        return [15, 60];
+        return [30, 120];
     }
 
-    /** Only one queued job per document at a time. */
     public function uniqueId(): string
     {
         return (string) $this->document->getKey();
     }
 
-    public function handle(DocumentTextExtractor $extractor, DocumentClassifier $classifier): void
-    {
+    public function handle(
+        DocumentTextExtractor $textExtractor,
+        DocumentClassifier $classifier,
+        FieldExtractionService $fieldExtraction,
+    ): void {
         $document = $this->document->fresh();
 
         if ($document === null) {
             return;
         }
 
-        // Idempotent: a retry finds the document already "Processing" and carries on;
-        // a duplicate dispatch finds it finished and does nothing.
         if ($document->status === DocumentStatus::Pending) {
             $document->transitionTo(DocumentStatus::Processing);
         } elseif ($document->status !== DocumentStatus::Processing) {
             return;
         }
 
-        try {
-            $result = $extractor->extract($document);
-        } catch (TextExtractionFailedException $e) {
-            // Retrying won't help (missing tool, damaged file), so fail now with a clear reason.
-            $this->markFailed($document, $e->getMessage());
+        // Stage 1: text. Skipped on a retry if an earlier attempt already saved it.
+        if ($document->extraction_method === null) {
+            try {
+                $text = $textExtractor->extract($document);
+            } catch (TextExtractionFailedException $e) {
+                $this->markFailed($document, $e->getMessage());
+
+                return;
+            }
+
+            $document->fill([
+                'extracted_text' => $text->hasText() ? $text->text : null,
+                'extraction_method' => $text->method,
+                'processing_note' => $text->hasText()
+                    ? null
+                    : 'No readable text was found. Check that the scan is clear, or enter the details by hand.',
+            ])->save();
+
+            AuditLog::record('document.text_extracted', $document, [
+                'method' => $text->method->value,
+                'characters' => mb_strlen($text->text),
+            ]);
+        }
+
+        if ($document->extracted_text === null) {
+            $document->forceFill(['processed_at' => now()])->save();
+            $document->transitionTo(DocumentStatus::ReviewRequired);
 
             return;
         }
 
-        // Respect a type someone already chose by hand.
-        $type = $document->type === DocumentType::Other && $result->hasText()
-            ? $classifier->classify($result->text)
-            : $document->type;
+        // Stage 2: structured fields (Gemini, or rules as a fallback).
+        $chosenByHand = $document->type !== DocumentType::Other;
+        $hint = $chosenByHand ? $document->type : $classifier->classify($document->extracted_text);
+
+        $extraction = $fieldExtraction->run($document, $hint, mayRetry: $this->mayRetry());
+
+        $type = $chosenByHand ? $document->type : $extraction->detected_type;
 
         $document->fill([
-            'extracted_text' => $result->hasText() ? $result->text : null,
-            'extraction_method' => $result->method,
             'type' => $type,
             'failure_reason' => null,
-            'processing_note' => $result->hasText()
-                ? null
-                : 'No readable text was found. Check that the scan is clear, or enter the details by hand.',
             'processed_at' => now(),
         ])->save();
 
-        // Financial documents wait for field extraction and human review (Weeks 7–8).
-        $document->transitionTo(match (true) {
-            ! $result->hasText() => DocumentStatus::ReviewRequired,
-            $type->isFinancial() => DocumentStatus::ReviewRequired,
-            default => DocumentStatus::Completed,
-        });
+        // Financial documents wait for a person to verify the fields (Week 8).
+        $document->transitionTo($type->isFinancial() ? DocumentStatus::ReviewRequired : DocumentStatus::Completed);
 
         AuditLog::record('document.processed', $document, [
-            'method' => $result->method->value,
+            'provider' => $extraction->provider,
             'type' => $type->value,
-            'characters' => mb_strlen($result->text),
+            'missing' => $extraction->missing_fields,
         ]);
     }
 
-    /** Called by the queue after the final attempt throws. */
     public function failed(?Throwable $exception): void
     {
         $document = $this->document->fresh();
@@ -110,6 +123,12 @@ class ProcessDocument implements ShouldBeUnique, ShouldQueue
         }
     }
 
+    /** Only a real queued attempt with attempts left may be retried; dispatchSync() never can. */
+    private function mayRetry(): bool
+    {
+        return $this->job !== null && $this->attempts() < $this->tries;
+    }
+
     private function markFailed(Document $document, string $reason): void
     {
         $document->forceFill([
@@ -120,7 +139,6 @@ class ProcessDocument implements ShouldBeUnique, ShouldQueue
         if ($document->status->canTransitionTo(DocumentStatus::Failed)) {
             $document->transitionTo(DocumentStatus::Failed);
         } else {
-            // e.g. still "Pending" because it crashed before starting: record the failure anyway.
             $document->forceFill(['status' => DocumentStatus::Failed])->save();
         }
 

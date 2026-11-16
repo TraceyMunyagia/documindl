@@ -24,6 +24,22 @@ return [
         'min_pdf_text_chars' => 40, // fewer real characters than this → treat the PDF as a scan
         'tool_timeout' => 90,     // seconds for any single tool run
     ],
+    'ai' => [
+        'enabled' => (bool) env('DOCUMIND_AI_ENABLED', true),
+        'max_input_chars' => 30000,      // longer documents are cut, to control cost
+        'max_output_tokens' => 4096,     // includes the model's reasoning ("thinking") tokens
+        'request_timeout' => 60,         // seconds
+        'thinking_level' => env('DOCUMIND_AI_THINKING_LEVEL') ?: null,
+        'daily_calls_per_business' => (int) env('DOCUMIND_AI_DAILY_LIMIT', 200), // 0 = no limit
+
+        // Estimates only – copy current prices (USD per million tokens) from the provider's pricing page.
+        'pricing' => [
+            'gemini' => [
+                'input_per_million' => (float) env('GEMINI_PRICE_INPUT_PER_MILLION', 0),
+                'output_per_million' => (float) env('GEMINI_PRICE_OUTPUT_PER_MILLION', 0),
+            ],
+        ],
+    ],
 
     // Sidebar items. An item becomes a link as soon as its route exists.
     'navigation' => [

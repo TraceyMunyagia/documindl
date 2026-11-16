@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -110,6 +111,17 @@ class Document extends Model
     public function tasks(): MorphMany
     {
         return $this->morphMany(Task::class, 'taskable');
+    }
+
+    public function extractions(): HasMany
+    {
+        return $this->hasMany(DocumentExtraction::class);
+    }
+
+    /** The newest extraction run, loaded efficiently even for lists of documents. */
+    public function latestExtraction(): HasOne
+    {
+        return $this->hasOne(DocumentExtraction::class)->latestOfMany();
     }
 
     /** @return Attribute<lowercase-string, never> */

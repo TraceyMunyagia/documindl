@@ -10,6 +10,7 @@ use App\Parsing\ParserRegistry;
 use App\Parsing\PlainTextParser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /*
@@ -87,4 +88,44 @@ function memberOf(Business $business, BusinessRole $role): User
 function processNow(Document $document): void
 {
     app()->call([new ProcessDocument($document), 'handle']);
+}
+/** A complete, valid extraction payload, with optional overrides. */
+function geminiPayload(array $overrides = []): array
+{
+    return array_replace([
+        'document_type' => 'invoice',
+        'supplier_name' => 'Savannah Office Supplies Ltd',
+        'document_number' => 'INV-2026-0142',
+        'issue_date' => '2026-10-01',
+        'due_date' => '2026-10-31',
+        'currency' => 'KES',
+        'total_amount' => '13660.16',
+        'tax_amount' => '1884.16',
+        'summary' => 'Invoice for paper and printer toner.',
+        'confidence' => [
+            'supplier_name' => 0.98, 'document_number' => 0.97, 'issue_date' => 0.95, 'due_date' => 0.95,
+            'currency' => 0.99, 'total_amount' => 0.97, 'tax_amount' => 0.92,
+        ],
+        'warnings' => [],
+    ], $overrides);
+}
+
+/** A Gemini HTTP response wrapping a payload. */
+function geminiReply(array $payload, int $promptTokens = 1200, int $outputTokens = 150)
+{
+    return Http::response([
+        'candidates' => [[
+            'content' => ['role' => 'model', 'parts' => [['text' => json_encode($payload)]]],
+            'finishReason' => 'STOP',
+        ]],
+        'usageMetadata' => ['promptTokenCount' => $promptTokens, 'candidatesTokenCount' => $outputTokens],
+        'modelVersion' => 'gemini-test-model',
+    ]);
+}
+
+/** The invoice text the payload above describes. */
+function sampleInvoiceText(): string
+{
+    return "INVOICE\nSupplier: Savannah Office Supplies Ltd\nInvoice No: INV-2026-0142\nDate: 2026-10-01\n"
+        ."Due Date: 2026-10-31\nVAT (16%): KES 1,884.16\nTotal: KES 13,660.16\n";
 }

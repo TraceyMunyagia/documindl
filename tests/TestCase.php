@@ -4,6 +4,7 @@ namespace Tests;
 
 use App\Jobs\ProcessDocument;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Fortify\Features;
@@ -26,5 +27,7 @@ abstract class TestCase extends BaseTestCase
 
         // Never run real binaries unless a test fakes them or explicitly opts in.
         Process::preventStrayProcesses();
+        Http::preventStrayRequests();
+
     }
 }

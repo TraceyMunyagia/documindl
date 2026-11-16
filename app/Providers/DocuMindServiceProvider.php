@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Ai\Extraction\GeminiInvoiceExtractor;
 use App\Contracts\DocumentClassifier;
 use App\Contracts\InvoiceExtractor;
 use App\Extraction\KeywordClassifier;
@@ -27,6 +28,10 @@ class DocuMindServiceProvider extends ServiceProvider
 
         $this->app->bind(DocumentClassifier::class, KeywordClassifier::class);
         $this->app->bind(InvoiceExtractor::class, RegexInvoiceExtractor::class);
+        // Decided each time it's resolved, so tests (and a config change) can switch it.
+        $this->app->bind(InvoiceExtractor::class, fn ($app) => config('documind.ai.enabled') && config('services.gemini.key')
+            ? $app->make(GeminiInvoiceExtractor::class)
+            : $app->make(RegexInvoiceExtractor::class));
     }
 
     public function boot(): void
