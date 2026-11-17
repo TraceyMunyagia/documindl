@@ -71,7 +71,7 @@ new #[Layout('layouts.documind')] #[Title('Dashboard')] class extends Component
             ['label' => 'Create your account and verify your email', 'done' => true, 'week' => null],
             ['label' => 'Set up your business workspace', 'done' => true, 'week' => null],
             ['label' => 'Upload your first invoice or receipt', 'done' => Document::query()->whereNotNull('path')->exists(), 'week' => 4],
-            ['label' => 'Review AI-extracted fields and save', 'done' => false, 'week' => 8],
+            ['label' => 'Review AI-extracted fields and save', 'done' => \App\Models\DocumentExtraction::query()->whereNotNull('verified_at')->exists(), 'week' => 8],
         ];
     }
 };

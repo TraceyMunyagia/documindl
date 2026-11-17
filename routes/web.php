@@ -17,6 +17,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
         Route::livewire('team', 'pages::team.index')->name('team.index');
     });
+    Route::livewire('review', 'pages::review.index')->name('review.index');
+    Route::livewire('documents/{document}/review', 'pages::review.show')
+        ->whereNumber('document')
+        ->name('documents.review');
     Route::livewire('documents', 'pages::documents.index')->name('documents.index');
     Route::livewire('documents/upload', 'pages::documents.upload')->name('documents.upload');
     Route::livewire('documents/trash', 'pages::documents.trash')->name('documents.trash');

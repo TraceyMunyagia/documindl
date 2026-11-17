@@ -17,8 +17,15 @@
             'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900' => ! $active,
         ])
     >
-        <x-shell.icon :name="$item['icon']" />
+               <x-shell.icon :name="$item['icon']" />
         {{ $item['label'] }}
+
+        @if (($item['badge'] ?? null) === 'review')
+            @php $waiting = \App\Models\Document::query()->reviewableBy(auth()->user())->count(); @endphp
+            @if ($waiting > 0)
+                <span class="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">{{ $waiting }}</span>
+            @endif
+        @endif
     </a>
 @else
     <span

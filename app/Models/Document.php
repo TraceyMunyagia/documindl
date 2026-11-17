@@ -152,6 +152,21 @@ class Document extends Model
         });
     }
 
+    /**
+     * Documents waiting for review that this user may verify. Mirrors DocumentPolicy::update:
+     * owners and managers review everything; employees review their own uploads.
+     */
+    public function scopeReviewableBy(Builder $query, User $user): void
+    {
+        $query->where('documents.status', DocumentStatus::ReviewRequired->value);
+
+        $role = $user->current_business_id ? $user->roleIn($user->current_business_id) : null;
+
+        if (! ($role?->canManage() ?? false)) {
+            $query->where('documents.uploaded_by', $user->getKey());
+        }
+    }
+
     public function hasFile(): bool
     {
         return $this->path !== null;

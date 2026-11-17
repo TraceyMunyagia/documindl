@@ -104,6 +104,19 @@ new #[Layout('layouts.documind')] #[Title('Document')] class extends Component
         </div>
 
         <div class="flex items-center gap-2">
+            @if ($document->status === \App\Enums\DocumentStatus::ReviewRequired)
+                @can('update', $document)
+                    <a
+                        href="{{ route('documents.review', $document) }}"
+                        wire:navigate
+                        class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+                    >
+                        <flux:icon.check-badge class="size-4" />
+                        Review &amp; verify
+                    </a>
+                @endcan
+            @endif
+
             @can('update', $document)
                 @unless ($editing)
                     <button
@@ -143,34 +156,7 @@ new #[Layout('layouts.documind')] #[Title('Document')] class extends Component
 
     <div class="grid gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2">
-            @if (! $document->hasFile())
-                <x-ui.empty-state
-                    title="No file attached"
-                    description="This is a seeded demo record, so there's nothing to preview. Upload a real document to see the preview."
-                >
-                    <x-slot:icon>
-                        <flux:icon.document class="size-6" />
-                    </x-slot:icon>
-                </x-ui.empty-state>
-            @elseif ($document->isPdf())
-                <iframe
-                    wire:ignore
-                    src="{{ route('documents.file', $document) }}"
-                    title="Preview of {{ $document->original_name }}"
-                    class="h-[75vh] w-full rounded-xl border border-zinc-200 bg-white shadow-sm"
-                ></iframe>
-            @elseif ($document->isImage())
-                <div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-                    <img
-                        wire:ignore
-                        src="{{ route('documents.file', $document) }}"
-                        alt="Preview of {{ $document->original_name }}"
-                        class="mx-auto max-h-[75vh] object-contain"
-                    >
-                </div>
-            @else
-                <x-ui.empty-state title="No preview available" description="Download the file to open it on your device." />
-            @endif
+            <x-documents.preview :document="$document" />
         </div>
 
          <div class="space-y-6" @if ($document->status->isActive()) wire:poll.3s="refreshStatus" @endif>
@@ -266,8 +252,28 @@ new #[Layout('layouts.documind')] #[Title('Document')] class extends Component
                 </div>
             @endif
 
-                        @php $extraction = $document->latestExtraction; @endphp
+            @if ($document->invoice)
+                @php $invoice = $document->invoice; @endphp
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-sm">
+                    <div class="flex items-center justify-between gap-2">
+                        <h3 class="font-semibold text-emerald-900">
+                            Saved as {{ $document->type === \App\Enums\DocumentType::Receipt ? 'a paid receipt' : 'an invoice' }}
+                        </h3>
+                        <x-ui.badge :color="$invoice->status->color()">{{ $invoice->status->label() }}</x-ui.badge>
+                    </div>
+                    <dl class="mt-3 space-y-1.5 text-emerald-900">
+                        <div class="flex justify-between gap-4"><dt class="text-emerald-700">Supplier</dt><dd class="text-right">{{ $invoice->supplier_name }}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="text-emerald-700">Number</dt><dd class="text-right">{{ $invoice->invoice_number }}</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="text-emerald-700">Total</dt><dd class="text-right font-semibold">{{ $invoice->total->format() }}</dd></div>
+                        @if ($invoice->due_date)
+                            <div class="flex justify-between gap-4"><dt class="text-emerald-700">Due</dt><dd class="text-right">{{ $invoice->due_date->format('j M Y') }}</dd></div>
+                        @endif
+                    </dl>
+                    <p class="mt-3 text-xs text-emerald-700">The Invoices section arrives in Week 10.</p>
+                </div>
+            @endif
 
+            @php $extraction = $document->latestExtraction; @endphp
             @if ($extraction)
                 <div class="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
                     <div class="flex items-center justify-between gap-2">

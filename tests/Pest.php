@@ -4,6 +4,7 @@ use App\Enums\BusinessRole;
 use App\Jobs\ProcessDocument;
 use App\Models\Business;
 use App\Models\Document;
+use App\Models\DocumentExtraction;
 use App\Models\User;
 use App\Parsing\CsvReceiptParser;
 use App\Parsing\ParserRegistry;
@@ -128,4 +129,31 @@ function sampleInvoiceText(): string
 {
     return "INVOICE\nSupplier: Savannah Office Supplies Ltd\nInvoice No: INV-2026-0142\nDate: 2026-10-01\n"
         ."Due Date: 2026-10-31\nVAT (16%): KES 1,884.16\nTotal: KES 13,660.16\n";
+}
+/** An unverified AI extraction for a document, matching sampleInvoiceText(). */
+function aiExtraction(Document $document, array $fields = [], array $overrides = []): DocumentExtraction
+{
+    return DocumentExtraction::create(array_merge([
+        'business_id' => $document->business_id,
+        'document_id' => $document->id,
+        'provider' => 'gemini',
+        'model' => 'gemini-test-model',
+        'detected_type' => 'invoice',
+        'fields' => array_merge([
+            'supplier_name' => 'Savannah Office Supplies Ltd',
+            'document_number' => 'INV-2026-0142',
+            'issue_date' => '2026-10-01',
+            'due_date' => '2026-10-31',
+            'currency' => 'KES',
+            'total_cents' => 1366016,
+            'tax_cents' => 188416,
+        ], $fields),
+        'confidence' => [
+            'supplier_name' => 0.98, 'document_number' => 0.97, 'issue_date' => 0.95, 'due_date' => 0.95,
+            'currency' => 0.99, 'total_amount' => 0.97, 'tax_amount' => 0.5,
+        ],
+        'missing_fields' => [],
+        'warnings' => [],
+        'summary' => 'Invoice for paper and printer toner.',
+    ], $overrides));
 }

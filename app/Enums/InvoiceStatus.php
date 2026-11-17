@@ -15,4 +15,19 @@ enum InvoiceStatus: string
     {
         return $this !== self::Paid;
     }
+
+    public function label(): string
+    {
+        return ucfirst($this->value);
+    }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::Pending => 'amber',
+            self::Approved => 'sky',
+            self::Paid => 'emerald',
+            self::Overdue => 'rose',
+        };
+    }
 }

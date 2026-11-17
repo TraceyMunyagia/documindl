@@ -29,6 +29,9 @@ class DocumentExtraction extends Model
         'latency_ms',
         'verified_at',
         'verified_by',
+        'final_fields',
+        'corrections',
+        'review_seconds',
     ];
 
     protected function casts(): array
@@ -41,6 +44,9 @@ class DocumentExtraction extends Model
             'warnings' => 'array',
             'estimated_cost_usd' => 'decimal:6',
             'verified_at' => 'datetime',
+            'final_fields' => 'array',
+            'corrections' => 'array',
+            'review_seconds' => 'integer',
         ];
     }
 
@@ -82,6 +88,6 @@ class DocumentExtraction extends Model
 
     public function usedAi(): bool
     {
-        return $this->provider !== 'rules';
+        return ! in_array($this->provider, ['rules', 'manual'], true);
     }
 }
